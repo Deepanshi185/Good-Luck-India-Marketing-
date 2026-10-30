@@ -1,17 +1,22 @@
 import { useState } from "react";
 import { db } from "../../firebaseConfig";
-import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
+import {
+  doc,
+  getDoc,
+  setDoc,
+  collection,
+  getDocs,
+  serverTimestamp,
+} from "firebase/firestore";
 
 function AddUser() {
   const [formData, setFormData] = useState({
     userId: "",
-    group: "",
     referralId: "",
     fullName: "",
     email: "",
     mobile: "",
     pan: "",
-    tokenNo: "",
     password: "",
   });
 
@@ -21,13 +26,30 @@ function AddUser() {
     type: "success" | "error";
   } | null>(null);
 
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-  ) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value,
     });
+  };
+
+  // Helper function to auto-generate sequential IDs like GLIM001, GLIM002...
+  const generateSequentialUserId = async (): Promise<string> => {
+    const querySnapshot = await getDocs(collection(db, "users"));
+    let maxNumber = 0;
+
+    querySnapshot.forEach((docSnap) => {
+      const id = docSnap.id.toUpperCase();
+      if (id.startsWith("GLIM")) {
+        const numPart = parseInt(id.replace("GLIM", ""), 10);
+        if (!isNaN(numPart) && numPart > maxNumber) {
+          maxNumber = numPart;
+        }
+      }
+    });
+
+    const nextNumber = maxNumber + 1;
+    return `GLIM${String(nextNumber).padStart(3, "0")}`;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -44,7 +66,9 @@ function AddUser() {
         const referrerSnap = await getDoc(referrerRef);
 
         if (!referrerSnap.exists()) {
-          throw new Error(`Referral ID "${formData.referralId}" does not exist in the database.`);
+          throw new Error(
+            `Referral ID "${formData.referralId}" does not exist in database.`
+          );
         }
 
         const referrerData = referrerSnap.data();
@@ -54,8 +78,10 @@ function AddUser() {
         ].slice(0, 6);
       }
 
-      // Generate ID if empty
-      const finalUserId = formData.userId.trim() || `MEM${Math.floor(1000 + Math.random() * 9000)}`;
+      // Generate sequential ID if left blank
+      const finalUserId =
+        formData.userId.trim().toUpperCase() ||
+        (await generateSequentialUserId());
 
       // Save user to Firebase Firestore
       await setDoc(doc(db, "users", finalUserId), {
@@ -63,12 +89,10 @@ function AddUser() {
         fullName: formData.fullName,
         email: formData.email,
         mobile: formData.mobile,
-        pan: formData.pan,
+        pan: formData.pan.trim() || "N/A",
         referrerId: formData.referralId.trim() || null,
         uplineChain: uplineChain,
-        group: formData.group,
-        tokenNo: formData.tokenNo,
-        rank: "Member",
+        role: "member",
         isProfileEdited: false,
         wallet: {
           currentBalance: 0,
@@ -91,13 +115,11 @@ function AddUser() {
 
       setFormData({
         userId: "",
-        group: "",
         referralId: "",
         fullName: "",
         email: "",
         mobile: "",
         pan: "",
-        tokenNo: "",
         password: "",
       });
     } catch (err: any) {
@@ -111,145 +133,159 @@ function AddUser() {
   };
 
   return (
-    <div className="p-8 max-w-4xl mx-auto bg-white rounded-2xl shadow-xl">
-      <h1 className="text-3xl font-bold text-gray-900 mb-2">Register Member</h1>
-      <p className="text-gray-500 mb-6">Create a new member account in the system</p>
+    <div className="w-full max-w-full overflow-x-hidden p-2 sm:p-4 md:p-6">
+      <div className="w-full bg-white rounded-2xl shadow-xl border border-gray-100 p-4 sm:p-6 lg:p-8">
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-1">
+          Register Member
+        </h1>
+        <p className="text-xs sm:text-sm text-gray-500 mb-6">
+          Create a new member account in the system
+        </p>
 
-      {statusMessage && (
-        <div
-          className={`p-4 rounded-xl text-center mb-6 font-semibold ${
-            statusMessage.type === "success"
-              ? "bg-green-100 text-green-800 border border-green-300"
-              : "bg-red-100 text-red-800 border border-red-300"
-          }`}
-        >
-          {statusMessage.text}
-        </div>
-      )}
+        {statusMessage && (
+          <div
+            className={`p-3.5 rounded-xl text-center mb-6 font-semibold text-xs sm:text-sm ${
+              statusMessage.type === "success"
+                ? "bg-green-100 text-green-800 border border-green-300"
+                : "bg-red-100 text-red-800 border border-red-300"
+            }`}
+          >
+            {statusMessage.text}
+          </div>
+        )}
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Personal Information */}
-        <div>
-          <h2 className="text-lg font-bold text-[#D4AF37] mb-4">Personal Information</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">User ID (Optional)</label>
-              <input
-                type="text"
-                name="userId"
-                value={formData.userId}
-                onChange={handleChange}
-                placeholder="e.g. MEM101 (Auto-generated if blank)"
-                className="w-full p-3 border border-gray-300 rounded-lg outline-none focus:border-[#D4AF37]"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
-              <input
-                type="text"
-                name="fullName"
-                value={formData.fullName}
-                onChange={handleChange}
-                placeholder="Enter full name"
-                className="w-full p-3 border border-gray-300 rounded-lg outline-none focus:border-[#D4AF37]"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Email ID</label>
-              <input
-                type="email"
-                name="email"
-                value={formData.email}
-                onChange={handleChange}
-                placeholder="Enter email address"
-                className="w-full p-3 border border-gray-300 rounded-lg outline-none focus:border-[#D4AF37]"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Mobile Number</label>
-              <input
-                type="tel"
-                name="mobile"
-                value={formData.mobile}
-                onChange={handleChange}
-                placeholder="Enter mobile number"
-                className="w-full p-3 border border-gray-300 rounded-lg outline-none focus:border-[#D4AF37]"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">PAN</label>
-              <input
-                type="text"
-                name="pan"
-                value={formData.pan}
-                onChange={handleChange}
-                placeholder="Enter PAN"
-                className="w-full p-3 border border-gray-300 rounded-lg outline-none focus:border-[#D4AF37]"
-              />
+        <form onSubmit={handleSubmit} className="space-y-5">
+          {/* Personal Information */}
+          <div>
+            <h2 className="text-sm sm:text-base font-bold text-[#D4AF37] mb-3">
+              Personal Information
+            </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">
+                  User ID (Optional)
+                </label>
+                <input
+                  type="text"
+                  name="userId"
+                  value={formData.userId}
+                  onChange={handleChange}
+                  placeholder="Auto-generated if blank (e.g. GLIM001)"
+                  className="w-full p-2.5 sm:p-3 border border-gray-300 rounded-xl text-xs sm:text-sm outline-none focus:border-[#D4AF37]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">
+                  Full Name
+                </label>
+                <input
+                  type="text"
+                  name="fullName"
+                  value={formData.fullName}
+                  onChange={handleChange}
+                  placeholder="Enter full name"
+                  className="w-full p-2.5 sm:p-3 border border-gray-300 rounded-xl text-xs sm:text-sm outline-none focus:border-[#D4AF37]"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">
+                  Email ID
+                </label>
+                <input
+                  type="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  placeholder="Enter email address"
+                  className="w-full p-2.5 sm:p-3 border border-gray-300 rounded-xl text-xs sm:text-sm outline-none focus:border-[#D4AF37]"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">
+                  Mobile Number
+                </label>
+                <input
+                  type="tel"
+                  name="mobile"
+                  value={formData.mobile}
+                  onChange={handleChange}
+                  placeholder="Enter mobile number"
+                  className="w-full p-2.5 sm:p-3 border border-gray-300 rounded-xl text-xs sm:text-sm outline-none focus:border-[#D4AF37]"
+                  required
+                />
+              </div>
+
+              <div className="sm:col-span-2">
+                <label className="block text-xs font-semibold text-gray-700 mb-1">
+                  PAN Details (Optional)
+                </label>
+                <input
+                  type="text"
+                  name="pan"
+                  value={formData.pan}
+                  onChange={handleChange}
+                  placeholder="Enter PAN number (Optional)"
+                  className="w-full p-2.5 sm:p-3 border border-gray-300 rounded-xl text-xs sm:text-sm outline-none focus:border-[#D4AF37]"
+                />
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Membership Information */}
-        <div>
-          <h2 className="text-lg font-bold text-[#D4AF37] mb-4">Membership Information</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Referral Information */}
+          <div>
+            <h2 className="text-sm sm:text-base font-bold text-[#D4AF37] mb-3">
+              Referral Information
+            </h2>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Select Group</label>
-              <select
-                name="group"
-                value={formData.group}
-                onChange={handleChange}
-                className="w-full p-3 border border-gray-300 rounded-lg outline-none focus:border-[#D4AF37]"
-                required
-              >
-                <option value="">-- Select Group --</option>
-                <option value="Group A">Group A</option>
-                <option value="Group B">Group B</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Referral ID</label>
+              <label className="block text-xs font-semibold text-gray-700 mb-1">
+                Referral ID
+              </label>
               <input
                 type="text"
                 name="referralId"
                 value={formData.referralId}
                 onChange={handleChange}
                 placeholder="Enter referrer User ID (Leave empty if top level)"
-                className="w-full p-3 border border-gray-300 rounded-lg outline-none focus:border-[#D4AF37]"
+                className="w-full p-2.5 sm:p-3 border border-gray-300 rounded-xl text-xs sm:text-sm outline-none focus:border-[#D4AF37]"
               />
             </div>
           </div>
-        </div>
 
-        {/* Login Information */}
-        <div>
-          <h2 className="text-lg font-bold text-[#D4AF37] mb-4">Login Information</h2>
-          <div className="max-w-md">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Temporary Password</label>
-            <input
-              type="password"
-              name="password"
-              value={formData.password}
-              onChange={handleChange}
-              placeholder="Create password"
-              className="w-full p-3 border border-gray-300 rounded-lg outline-none focus:border-[#D4AF37]"
-              required
-            />
+          {/* Login Security */}
+          <div>
+            <h2 className="text-sm sm:text-base font-bold text-[#D4AF37] mb-3">
+              Login Security
+            </h2>
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 mb-1">
+                Temporary Password
+              </label>
+              <input
+                type="password"
+                name="password"
+                value={formData.password}
+                onChange={handleChange}
+                placeholder="Create initial password"
+                className="w-full p-2.5 sm:p-3 border border-gray-300 rounded-xl text-xs sm:text-sm outline-none focus:border-[#D4AF37]"
+                required
+              />
+            </div>
           </div>
-        </div>
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full md:w-auto px-8 py-4 rounded-xl bg-gradient-to-r from-[#FFD21C] to-[#F59E0B] text-black font-bold text-lg hover:scale-[1.01] transition disabled:opacity-50"
-        >
-          {loading ? "REGISTERING..." : "REGISTER USER"}
-        </button>
-      </form>
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full sm:w-auto px-8 py-3 rounded-xl bg-gradient-to-r from-[#FFD21C] to-[#F59E0B] text-black font-bold text-sm sm:text-base hover:scale-[1.01] transition disabled:opacity-50"
+          >
+            {loading ? "REGISTERING..." : "REGISTER USER"}
+          </button>
+        </form>
+      </div>
     </div>
   );
 }
