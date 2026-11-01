@@ -1,335 +1,364 @@
-import { useState } from "react";
-import { db } from "../../firebaseConfig";
-import {
-  doc,
-  getDoc,
-  setDoc,
-  collection,
-  getDocs,
-  serverTimestamp,
-} from "firebase/firestore";
-import emailjs from "@emailjs/browser";
+import { useState, useEffect } from "react";
+import { Search, Eye, Edit } from "lucide-react";
+import { db } from "../../firebaseConfig"; // Adjust relative path if needed
+import { collection, getDocs } from "firebase/firestore";
 
-// EmailJS Credentials
-const EMAILJS_SERVICE_ID = "service_33lpf3o";
-const EMAILJS_TEMPLATE_ID = "template_2ncoupi";
-const EMAILJS_PUBLIC_KEY = "YX13aDAzp4kU5PYRC";
+type Member = {
+  id: string;
+  name: string;
+  email: string;
+  mobile: string;
+  level: string;
+  status: string;
+  pan: string;
+};
 
-function AddUser() {
-  const [formData, setFormData] = useState({
-    userId: "",
-    referralId: "",
-    fullName: "",
-    email: "",
-    mobile: "",
-    pan: "",
-    password: "",
-  });
+function Users() {
+  const [search, setSearch] = useState("");
+  const [users, setUsers] = useState<Member[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const [loading, setLoading] = useState(false);
-  const [statusMessage, setStatusMessage] = useState<{
-    text: string;
-    type: "success" | "error";
-  } | null>(null);
+  useEffect(() => {
+    fetchLiveUsers();
+  }, []);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
-  };
-
-  // Helper function to auto-generate sequential IDs like GLIM001, GLIM002...
-  const generateSequentialUserId = async (): Promise<string> => {
-    const querySnapshot = await getDocs(collection(db, "users"));
-    let maxNumber = 0;
-
-    querySnapshot.forEach((docSnap) => {
-      const id = docSnap.id.toUpperCase();
-      if (id.startsWith("GLIM")) {
-        const numPart = parseInt(id.replace("GLIM", ""), 10);
-        if (!isNaN(numPart) && numPart > maxNumber) {
-          maxNumber = numPart;
-        }
-      }
-    });
-
-    const nextNumber = maxNumber + 1;
-    return `GLIM${String(nextNumber).padStart(3, "0")}`;
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setStatusMessage(null);
-
+  async function fetchLiveUsers() {
     try {
-      let uplineChain: string[] = [];
+      setLoading(true);
+      const querySnapshot = await getDocs(collection(db, "users"));
+      const list: Member[] = [];
 
-      // Build 6-level referral upline if Referral ID is provided
-      if (formData.referralId.trim() !== "") {
-        const referrerRef = doc(db, "users", formData.referralId.trim());
-        const referrerSnap = await getDoc(referrerRef);
+      querySnapshot.forEach((docSnap) => {
+        const data = docSnap.data();
+        
+        // Calculate dynamic level based on length of uplineChain
+        const chainLength = (data.uplineChain || []).length;
+        const calculatedLevel = chainLength > 0 ? `Level ${chainLength}` : "Direct / Top";
 
-        if (!referrerSnap.exists()) {
-          throw new Error(
-            `Referral ID "${formData.referralId}" does not exist in database.`
-          );
-        }
-
-        const referrerData = referrerSnap.data();
-        uplineChain = [
-          formData.referralId.trim(),
-          ...(referrerData.uplineChain || []),
-        ].slice(0, 6);
-      }
-
-      // Generate sequential ID if left blank
-      const finalUserId =
-        formData.userId.trim().toUpperCase() ||
-        (await generateSequentialUserId());
-
-      // 1. Save user to Firebase Firestore
-      await setDoc(doc(db, "users", finalUserId), {
-        userId: finalUserId,
-        fullName: formData.fullName,
-        email: formData.email,
-        mobile: formData.mobile,
-        pan: formData.pan.trim() || "N/A",
-        referrerId: formData.referralId.trim() || null,
-        uplineChain: uplineChain,
-        role: "member",
-        isProfileEdited: false,
-        wallet: {
-          currentBalance: 0,
-          totalIncome: 0,
-          renewalIncome: 0,
-          levelIncome: 0,
-          holdBalance: 0,
-        },
-        installments: {
-          1: { paid: false, paidAt: null },
-          2: { paid: false, paidAt: null },
-        },
-        createdAt: serverTimestamp(),
+        list.push({
+          id: data.userId || docSnap.id,
+          name: data.fullName || "N/A",
+          email: data.email || "N/A",
+          mobile: data.mobile || "N/A",
+          level: calculatedLevel,
+          status: data.role === "admin" ? "Admin" : "Active",
+          pan: data.pan || "N/A",
+        });
       });
 
-      // 2. Send automatic credentials email to member via EmailJS
-      let emailSent = false;
-      try {
-        await emailjs.send(
-          EMAILJS_SERVICE_ID,
-          EMAILJS_TEMPLATE_ID,
-          {
-            to_name: formData.fullName,
-            to_email: formData.email,
-            user_id: finalUserId,
-            password: formData.password,
-            mobile: formData.mobile,
-          },
-          EMAILJS_PUBLIC_KEY
-        );
-        emailSent = true;
-      } catch (emailErr) {
-        console.error("Member created, but failed to send email:", emailErr);
-      }
-
-      setStatusMessage({
-        text: `Member registered successfully! User ID: ${finalUserId}.${
-          emailSent
-            ? ` Credentials sent to ${formData.email}`
-            : " (Email notification could not be delivered)"
-        }`,
-        type: "success",
-      });
-
-      setFormData({
-        userId: "",
-        referralId: "",
-        fullName: "",
-        email: "",
-        mobile: "",
-        pan: "",
-        password: "",
-      });
-    } catch (err: any) {
-      setStatusMessage({
-        text: err.message || "Failed to register member.",
-        type: "error",
-      });
+      setUsers(list);
+    } catch (err) {
+      console.error("Error fetching live users from Firestore:", err);
     } finally {
       setLoading(false);
     }
-  };
+  }
+
+  const filteredUsers = users.filter(
+    (user) =>
+      user.name.toLowerCase().includes(search.toLowerCase()) ||
+      user.id.toLowerCase().includes(search.toLowerCase()) ||
+      user.mobile.includes(search)
+  );
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[300px] text-white">
+        <p className="text-lg font-semibold">Loading Registered Users...</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="w-full max-w-4xl mx-auto p-2 sm:p-4 md:p-6 overflow-x-hidden">
-      <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-4 sm:p-6 md:p-8">
-        
-        {/* Header */}
-        <div className="border-b border-gray-100 pb-4 mb-5">
-          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
-            Register Member
-          </h1>
-          <p className="text-xs sm:text-sm text-gray-500 mt-1">
-            Create a new member account and auto-send login credentials
-          </p>
+    <div className="w-full max-w-full overflow-x-hidden space-y-4 sm:space-y-6">
+
+      {/* Header */}
+      <div>
+        <h1 className="text-2xl sm:text-3xl font-bold text-white">
+          Users
+        </h1>
+
+        <p className="text-xs sm:text-sm text-gray-400 mt-1">
+          View and manage registered members
+        </p>
+      </div>
+
+
+      {/* Statistics Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-5">
+
+        <StatCard
+          title="Total Users"
+          value={users.length.toString()}
+        />
+
+        <StatCard
+          title="Active Members"
+          value={
+            users
+              .filter((user) => user.status === "Active")
+              .length.toString()
+          }
+        />
+
+        <StatCard
+          title="Admin Accounts"
+          value={
+            users
+              .filter((user) => user.status === "Admin")
+              .length.toString()
+          }
+        />
+
+      </div>
+
+
+      {/* User Table & Card Container */}
+      <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100">
+
+        {/* Search Header */}
+        <div className="p-4 sm:p-6 border-b border-gray-200">
+
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+
+            <div>
+              <h2 className="text-lg sm:text-xl font-bold text-gray-900">
+                Registered Users
+              </h2>
+
+              <p className="text-xs sm:text-sm text-gray-500 mt-0.5">
+                Manage member information
+              </p>
+            </div>
+
+
+            {/* Search Input */}
+            <div className="relative w-full sm:w-80">
+
+              <Search
+                size={18}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+              />
+
+              <input
+                type="text"
+                placeholder="Search by ID, name, or mobile..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full border border-gray-300 rounded-xl pl-9 pr-4 py-2.5 text-xs sm:text-sm outline-none focus:border-[#D4AF37]"
+              />
+
+            </div>
+
+          </div>
+
         </div>
 
-        {/* Status Alert Banner */}
-        {statusMessage && (
-          <div
-            className={`p-3.5 sm:p-4 rounded-xl text-center mb-6 font-semibold text-xs sm:text-sm ${
-              statusMessage.type === "success"
-                ? "bg-green-100 text-green-800 border border-green-300"
-                : "bg-red-100 text-red-800 border border-red-300"
-            }`}
-          >
-            {statusMessage.text}
-          </div>
-        )}
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          
-          {/* Personal Information Card */}
-          <div className="bg-gray-50/70 p-3.5 sm:p-5 rounded-xl border border-gray-100">
-            <h2 className="text-xs sm:text-sm font-bold text-[#D4AF37] tracking-wide uppercase mb-3 sm:mb-4">
-              Personal Information
-            </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">
-                  User ID (Optional)
-                </label>
-                <input
-                  type="text"
-                  name="userId"
-                  value={formData.userId}
-                  onChange={handleChange}
-                  placeholder="Auto-generated if blank (e.g. GLIM001)"
-                  className="w-full p-2.5 sm:p-3 border border-gray-300 rounded-xl text-xs sm:text-sm outline-none focus:border-[#D4AF37] focus:ring-1 focus:ring-[#D4AF37] bg-white"
-                />
+        {/* Desktop Table View */}
+        <div className="hidden md:block overflow-x-auto">
+
+          <table className="w-full text-left">
+
+            <thead>
+
+              <tr className="bg-black text-white text-xs sm:text-sm">
+
+                <th className="px-5 py-4">ID No.</th>
+
+                <th className="px-5 py-4">Name</th>
+
+                <th className="px-5 py-4">Mobile</th>
+
+                <th className="px-5 py-4">Level</th>
+
+                <th className="px-5 py-4">Status</th>
+
+                <th className="px-5 py-4 text-center">Actions</th>
+
+              </tr>
+
+            </thead>
+
+
+            <tbody className="divide-y divide-gray-200 text-xs sm:text-sm">
+
+              {filteredUsers.length > 0 ? (
+
+                filteredUsers.map((user) => (
+
+                  <tr
+                    key={user.id}
+                    className="hover:bg-gray-50 transition"
+                  >
+
+                    <td className="px-5 py-4 font-bold text-gray-900">
+                      {user.id}
+                    </td>
+
+                    <td className="px-5 py-4">
+                      <div>
+                        <p className="font-semibold text-gray-900">{user.name}</p>
+                        <p className="text-xs text-gray-500">{user.email}</p>
+                      </div>
+                    </td>
+
+                    <td className="px-5 py-4 text-gray-600">
+                      {user.mobile}
+                    </td>
+
+                    <td className="px-5 py-4">
+
+                      <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-800">
+                        {user.level}
+                      </span>
+
+                    </td>
+
+                    <td className="px-5 py-4">
+
+                      <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
+                        user.status === "Admin"
+                          ? "bg-purple-100 text-purple-700"
+                          : "bg-green-100 text-green-700"
+                      }`}>
+                        {user.status}
+                      </span>
+
+                    </td>
+
+                    <td className="px-5 py-4">
+
+                      <div className="flex justify-center gap-2">
+
+                        <button
+                          title="View Details"
+                          className="p-2 rounded-lg border border-gray-200 hover:bg-gray-100 text-gray-600"
+                        >
+                          <Eye size={16} />
+                        </button>
+
+                        <button
+                          title="Edit User"
+                          className="p-2 rounded-lg border border-gray-200 hover:bg-gray-100 text-gray-600"
+                        >
+                          <Edit size={16} />
+                        </button>
+
+                      </div>
+
+                    </td>
+
+                  </tr>
+
+                ))
+
+              ) : (
+
+                <tr>
+
+                  <td
+                    colSpan={6}
+                    className="px-5 py-10 text-center text-gray-500"
+                  >
+                    No members found in Firestore database.
+                  </td>
+
+                </tr>
+
+              )}
+
+            </tbody>
+
+          </table>
+
+        </div>
+
+
+        {/* Mobile View */}
+        <div className="block md:hidden divide-y divide-gray-200 p-3">
+
+          {filteredUsers.length > 0 ? (
+
+            filteredUsers.map((user) => (
+
+              <div key={user.id} className="py-3.5 space-y-2">
+
+                <div className="flex items-center justify-between">
+
+                  <div>
+                    <span className="font-bold text-gray-900 text-sm">
+                      {user.id}
+                    </span>
+                    <h3 className="font-semibold text-gray-800 text-sm">
+                      {user.name}
+                    </h3>
+                  </div>
+
+                  <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
+                    user.status === "Admin"
+                      ? "bg-purple-100 text-purple-700"
+                      : "bg-green-100 text-green-700"
+                  }`}>
+                    {user.status}
+                  </span>
+
+                </div>
+
+                <div className="text-xs text-gray-500 flex justify-between items-center">
+                  <span>Mobile: {user.mobile}</span>
+                  <span className="bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded-full font-medium">
+                    {user.level}
+                  </span>
+                </div>
+
+                <div className="text-xs text-gray-400 truncate">
+                  {user.email}
+                </div>
+
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">
-                  Full Name *
-                </label>
-                <input
-                  type="text"
-                  name="fullName"
-                  value={formData.fullName}
-                  onChange={handleChange}
-                  placeholder="Enter full name"
-                  className="w-full p-2.5 sm:p-3 border border-gray-300 rounded-xl text-xs sm:text-sm outline-none focus:border-[#D4AF37] focus:ring-1 focus:ring-[#D4AF37] bg-white"
-                  required
-                />
-              </div>
+            ))
 
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">
-                  Email Address *
-                </label>
-                <input
-                  type="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  placeholder="Credentials will be sent here"
-                  className="w-full p-2.5 sm:p-3 border border-gray-300 rounded-xl text-xs sm:text-sm outline-none focus:border-[#D4AF37] focus:ring-1 focus:ring-[#D4AF37] bg-white"
-                  required
-                />
-              </div>
+          ) : (
 
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">
-                  Mobile Number *
-                </label>
-                <input
-                  type="tel"
-                  name="mobile"
-                  value={formData.mobile}
-                  onChange={handleChange}
-                  placeholder="Enter mobile number"
-                  className="w-full p-2.5 sm:p-3 border border-gray-300 rounded-xl text-xs sm:text-sm outline-none focus:border-[#D4AF37] focus:ring-1 focus:ring-[#D4AF37] bg-white"
-                  required
-                />
-              </div>
+            <p className="py-8 text-center text-xs text-gray-500">
+              No members found in Firestore database.
+            </p>
 
-              <div className="sm:col-span-2">
-                <label className="block text-xs font-semibold text-gray-700 mb-1">
-                  PAN Details (Optional)
-                </label>
-                <input
-                  type="text"
-                  name="pan"
-                  value={formData.pan}
-                  onChange={handleChange}
-                  placeholder="Enter PAN number"
-                  className="w-full p-2.5 sm:p-3 border border-gray-300 rounded-xl text-xs sm:text-sm outline-none focus:border-[#D4AF37] focus:ring-1 focus:ring-[#D4AF37] bg-white"
-                />
-              </div>
-            </div>
-          </div>
+          )}
 
-          {/* Referral & Security Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            
-            {/* Referral Section */}
-            <div className="bg-gray-50/70 p-3.5 sm:p-5 rounded-xl border border-gray-100">
-              <h2 className="text-xs sm:text-sm font-bold text-[#D4AF37] tracking-wide uppercase mb-3">
-                Referral Details
-              </h2>
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">
-                  Referral ID
-                </label>
-                <input
-                  type="text"
-                  name="referralId"
-                  value={formData.referralId}
-                  onChange={handleChange}
-                  placeholder="Referrer ID (Leave blank if top level)"
-                  className="w-full p-2.5 sm:p-3 border border-gray-300 rounded-xl text-xs sm:text-sm outline-none focus:border-[#D4AF37] focus:ring-1 focus:ring-[#D4AF37] bg-white"
-                />
-              </div>
-            </div>
+        </div>
 
-            {/* Login Security Section */}
-            <div className="bg-gray-50/70 p-3.5 sm:p-5 rounded-xl border border-gray-100">
-              <h2 className="text-xs sm:text-sm font-bold text-[#D4AF37] tracking-wide uppercase mb-3">
-                Login Security
-              </h2>
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">
-                  Temporary Password *
-                </label>
-                <input
-                  type="password"
-                  name="password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  placeholder="Create initial password"
-                  className="w-full p-2.5 sm:p-3 border border-gray-300 rounded-xl text-xs sm:text-sm outline-none focus:border-[#D4AF37] focus:ring-1 focus:ring-[#D4AF37] bg-white"
-                  required
-                />
-              </div>
-            </div>
-
-          </div>
-
-          {/* Submit Button */}
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-3.5 px-6 rounded-xl bg-gradient-to-r from-[#FFD21C] to-[#F59E0B] text-black font-bold text-sm sm:text-base hover:scale-[1.005] active:scale-[0.99] transition disabled:opacity-50 shadow-md"
-          >
-            {loading ? "REGISTERING & SENDING EMAIL..." : "REGISTER USER"}
-          </button>
-        </form>
       </div>
+
     </div>
   );
 }
 
-export default AddUser;
+
+/* ---------------- Statistics Card ---------------- */
+
+function StatCard({
+  title,
+  value,
+}: {
+  title: string;
+  value: string;
+}) {
+  return (
+    <div className="bg-white rounded-2xl p-4 sm:p-5 shadow-xl border border-gray-100">
+
+      <p className="text-xs text-gray-500 font-medium">
+        {title}
+      </p>
+
+      <p className="text-2xl sm:text-3xl font-bold text-gray-900 mt-1">
+        {value}
+      </p>
+
+    </div>
+  );
+}
+
+export default Users;
