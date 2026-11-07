@@ -296,27 +296,25 @@ function AddUser() {
             </div>
 
             {/* Login Security Section */}
-            <div className="bg-gray-50/70 p-3.5 sm:p-5 rounded-xl border border-gray-100">
-              <h2 className="text-xs sm:text-sm font-bold text-[#D4AF37] tracking-wide uppercase mb-3">
-                Login Security
-              </h2>
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">
-                  Temporary Password *
-                </label>
-                <input
-                  type="password"
-                  name="password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  placeholder="Create initial password"
-                  className="w-full p-2.5 sm:p-3 border border-gray-300 rounded-xl text-xs sm:text-sm outline-none focus:border-[#D4AF37] focus:ring-1 focus:ring-[#D4AF37] bg-white"
-                  required
-                />
-              </div>
-            </div>
-
-          </div>
+<div className="bg-gray-50/70 p-3.5 sm:p-5 rounded-xl border border-gray-100">
+  <h2 className="text-xs sm:text-sm font-bold text-[#D4AF37] tracking-wide uppercase mb-3">
+    Login Security
+  </h2>
+  <div>
+    <label className="block text-xs font-semibold text-gray-700 mb-1">
+      Password *
+    </label>
+    <input
+      type="password"
+      name="password"
+      value={formData.password}
+      onChange={handleChange}
+      placeholder="Create account password"
+      className="w-full p-2.5 sm:p-3 border border-gray-300 rounded-xl text-xs sm:text-sm outline-none focus:border-[#D4AF37] focus:ring-1 focus:ring-[#D4AF37] bg-white"
+      required
+    />
+  </div>
+</div>
 
           {/* Submit Button */}
           <button
@@ -326,7 +324,7 @@ function AddUser() {
           >
             {loading ? "REGISTERING & SENDING EMAIL..." : "REGISTER USER"}
           </button>
-        </form>
+        </form>   
       </div>
     </div>
   );
