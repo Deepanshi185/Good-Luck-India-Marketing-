@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Search, Check, Clock } from "lucide-react";
-import { db } from "../../firebaseConfig"; // Adjust relative path if needed
+import { db } from "../../firebaseConfig";
 import {
   collection,
   getDocs,
@@ -162,7 +162,7 @@ function Payments() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px] text-white">
-        <p className="text-xl font-semibold">Loading Member Data...</p>
+        <p className="text-sm sm:text-base font-semibold">Loading Member Data...</p>
       </div>
     );
   }
@@ -173,61 +173,70 @@ function Payments() {
   const pendingCount = 2 - paidCount;
 
   return (
-    <div className="space-y-6">
+    <div className="w-full max-w-full overflow-x-hidden space-y-4 sm:space-y-6">
+      
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-white">Payment Management</h1>
-        <p className="text-gray-400 mt-1">
+        <h1 className="text-2xl sm:text-3xl font-bold text-white">
+          Payment Management
+        </h1>
+        <p className="text-xs sm:text-sm text-gray-400 mt-1">
           Clear member installments to trigger automatic 6-level income distributions
         </p>
       </div>
 
-      {/* User Search */}
-      <div className="bg-white rounded-2xl shadow-xl p-6">
-        <h2 className="text-xl font-bold text-gray-900 mb-5">Select Member</h2>
+      {/* User Search & Selection Card */}
+      <div className="bg-white rounded-2xl shadow-xl p-4 sm:p-6 border border-gray-100">
+        <h2 className="text-base sm:text-xl font-bold text-gray-900 mb-4">
+          Select Member
+        </h2>
 
-        <div className="relative max-w-md">
+        <div className="relative w-full sm:max-w-md">
           <Search
-            size={19}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+            size={18}
+            className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400"
           />
           <input
             type="text"
             placeholder="Search member by ID or name..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full border border-gray-300 rounded-xl pl-10 pr-4 py-3 outline-none focus:border-[#D4AF37]"
+            className="w-full border border-gray-300 rounded-xl pl-10 pr-4 py-2.5 sm:py-3 text-xs sm:text-sm outline-none focus:border-[#D4AF37]"
           />
         </div>
 
         {/* Members List */}
-        <div className="mt-4 space-y-2 max-h-60 overflow-y-auto pr-1">
+        <div className="mt-4 space-y-2 max-h-56 sm:max-h-60 overflow-y-auto pr-1">
           {filteredUsers.length > 0 ? (
             filteredUsers.map((user) => (
               <button
                 key={user.id}
                 onClick={() => setSelectedUser(user.id)}
-                className={`w-full text-left p-4 rounded-xl border transition ${
+                className={`w-full text-left p-3.5 sm:p-4 rounded-xl border transition ${
                   selectedUser === user.id
-                    ? "border-[#D4AF37] bg-yellow-50"
+                    ? "border-[#D4AF37] bg-yellow-50/80 shadow-sm"
                     : "border-gray-200 hover:bg-gray-50"
                 }`}
               >
                 <div className="flex justify-between items-center">
                   <div>
-                    <p className="font-bold text-gray-900">{user.name}</p>
-                    <p className="text-sm text-gray-500">
-                      {user.id} • {user.mobile}
+                    <p className="font-bold text-gray-900 text-xs sm:text-sm">
+                      {user.name}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      ID: {user.id} • Mobile: {user.mobile}
                     </p>
                   </div>
                   {selectedUser === user.id && (
-                    <Check size={20} className="text-[#B8860B]" />
+                    <Check size={18} className="text-[#B8860B]" />
                   )}
                 </div>
               </button>
             ))
           ) : (
-            <p className="text-gray-500 py-4 text-center">No matching members found.</p>
+            <p className="text-gray-500 py-4 text-center text-xs sm:text-sm">
+              No matching members found.
+            </p>
           )}
         </div>
       </div>
@@ -235,73 +244,78 @@ function Payments() {
       {/* Selected User Section */}
       {currentUser && (
         <>
-          <div className="bg-white rounded-2xl shadow-xl p-6">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div className="bg-white rounded-2xl shadow-xl p-4 sm:p-6 border border-gray-100">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div>
-                <p className="text-sm text-gray-500">Selected Member</p>
-                <h2 className="text-2xl font-bold text-gray-900">
+                <p className="text-xs text-gray-500 font-medium">Selected Member</p>
+                <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mt-0.5">
                   {currentUser.name}
                 </h2>
-                <p className="text-gray-500">Member ID: {currentUser.id}</p>
+                <p className="text-xs sm:text-sm text-gray-500">
+                  Member ID: <span className="font-semibold text-gray-800">{currentUser.id}</span>
+                </p>
               </div>
 
-              <div className="flex gap-3">
+              <div className="grid grid-cols-2 sm:flex gap-3">
                 <StatusSummary label="Paid" value={paidCount} />
                 <StatusSummary label="Pending" value={pendingCount} />
               </div>
             </div>
           </div>
 
-          {/* Payment Table */}
-          <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
-            <div className="p-6 border-b border-gray-200">
-              <h2 className="text-xl font-bold text-gray-900">Payment Clearance</h2>
-              <p className="text-sm text-gray-500 mt-1">
+          {/* Payment Table / Cards */}
+          <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100">
+            <div className="p-4 sm:p-6 border-b border-gray-200">
+              <h2 className="text-base sm:text-xl font-bold text-gray-900">
+                Payment Clearance
+              </h2>
+              <p className="text-xs sm:text-sm text-gray-500 mt-0.5">
                 Updating an installment automatically processes upline team incomes.
               </p>
             </div>
 
-            <div className="overflow-x-auto">
-              <table className="w-full">
+            {/* Desktop Table View */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-left">
                 <thead>
-                  <tr className="bg-black text-white">
-                    <th className="px-6 py-4 text-left">Installment</th>
-                    <th className="px-6 py-4 text-left">Date</th>
-                    <th className="px-6 py-4 text-left">Triggered Income Rule</th>
-                    <th className="px-6 py-4 text-left">Status</th>
-                    <th className="px-6 py-4 text-center">Action</th>
+                  <tr className="bg-black text-white text-xs sm:text-sm">
+                    <th className="px-5 py-4">Installment</th>
+                    <th className="px-5 py-4">Date</th>
+                    <th className="px-5 py-4">Triggered Income Rule</th>
+                    <th className="px-5 py-4">Status</th>
+                    <th className="px-5 py-4 text-center">Action</th>
                   </tr>
                 </thead>
 
-                <tbody>
+                <tbody className="divide-y divide-gray-200 text-xs sm:text-sm">
                   {/* 1st Installment Row */}
-                  <tr className="border-b border-gray-200 hover:bg-gray-50">
-                    <td className="px-6 py-4 font-bold text-gray-900">1st Installment</td>
-                    <td className="px-6 py-4 text-gray-600">
+                  <tr className="hover:bg-gray-50 transition">
+                    <td className="px-5 py-4 font-bold text-gray-900">1st Installment</td>
+                    <td className="px-5 py-4 text-gray-600">
                       {currentUser.installments[1]?.paidAt
                         ? new Date(currentUser.installments[1].paidAt!).toLocaleDateString("en-IN")
                         : "—"}
                     </td>
-                    <td className="px-6 py-4 text-sm font-semibold text-green-700">
+                    <td className="px-5 py-4 font-semibold text-green-700">
                       Level 1 Income (₹200)
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-5 py-4">
                       {inst1Paid ? (
-                        <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-green-100 text-green-700 text-sm font-semibold">
-                          <Check size={15} /> Paid
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-green-100 text-green-700 text-xs font-semibold">
+                          <Check size={14} /> Paid
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-yellow-100 text-yellow-700 text-sm font-semibold">
-                          <Clock size={15} /> Pending
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-yellow-100 text-yellow-700 text-xs font-semibold">
+                          <Clock size={14} /> Pending
                         </span>
                       )}
                     </td>
-                    <td className="px-6 py-4 text-center">
+                    <td className="px-5 py-4 text-center">
                       {!inst1Paid && (
                         <button
                           disabled={processingId === `${currentUser.id}-1`}
                           onClick={() => handleClearInstallment(currentUser, 1)}
-                          className="px-4 py-2 rounded-xl bg-gradient-to-r from-[#FFD21C] to-[#C99420] text-black font-bold hover:scale-[1.02] transition disabled:opacity-50 text-xs"
+                          className="px-4 py-2 rounded-xl bg-gradient-to-r from-[#FFD21C] to-[#C99420] text-black font-bold hover:scale-[1.02] transition disabled:opacity-50 text-xs shadow-sm"
                         >
                           {processingId === `${currentUser.id}-1` ? "Processing..." : "Mark 1st Paid"}
                         </button>
@@ -310,33 +324,33 @@ function Payments() {
                   </tr>
 
                   {/* 2nd Installment Row */}
-                  <tr className="border-b border-gray-200 hover:bg-gray-50">
-                    <td className="px-6 py-4 font-bold text-gray-900">2nd Installment</td>
-                    <td className="px-6 py-4 text-gray-600">
+                  <tr className="hover:bg-gray-50 transition">
+                    <td className="px-5 py-4 font-bold text-gray-900">2nd Installment</td>
+                    <td className="px-5 py-4 text-gray-600">
                       {currentUser.installments[2]?.paidAt
                         ? new Date(currentUser.installments[2].paidAt!).toLocaleDateString("en-IN")
                         : "—"}
                     </td>
-                    <td className="px-6 py-4 text-sm font-semibold text-blue-700">
+                    <td className="px-5 py-4 font-semibold text-blue-700">
                       Level 2–6 Team Incomes (L2: ₹100, L3-L6: ₹50)
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-5 py-4">
                       {inst2Paid ? (
-                        <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-green-100 text-green-700 text-sm font-semibold">
-                          <Check size={15} /> Paid
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-green-100 text-green-700 text-xs font-semibold">
+                          <Check size={14} /> Paid
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-yellow-100 text-yellow-700 text-sm font-semibold">
-                          <Clock size={15} /> Pending
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-yellow-100 text-yellow-700 text-xs font-semibold">
+                          <Clock size={14} /> Pending
                         </span>
                       )}
                     </td>
-                    <td className="px-6 py-4 text-center">
+                    <td className="px-5 py-4 text-center">
                       {!inst2Paid && (
                         <button
                           disabled={!inst1Paid || processingId === `${currentUser.id}-2`}
                           onClick={() => handleClearInstallment(currentUser, 2)}
-                          className="px-4 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold hover:scale-[1.02] transition disabled:opacity-40 text-xs"
+                          className="px-4 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold hover:scale-[1.02] transition disabled:opacity-40 text-xs shadow-sm"
                         >
                           {processingId === `${currentUser.id}-2` ? "Processing..." : "Mark 2nd Paid"}
                         </button>
@@ -345,6 +359,77 @@ function Payments() {
                   </tr>
                 </tbody>
               </table>
+            </div>
+
+            {/* Mobile View Cards */}
+            <div className="block md:hidden divide-y divide-gray-200 p-3 space-y-4">
+              
+              {/* Mobile Card - Installment 1 */}
+              <div className="bg-gray-50/70 p-3.5 rounded-xl border border-gray-100 space-y-2.5">
+                <div className="flex justify-between items-center">
+                  <span className="font-bold text-gray-900 text-sm">1st Installment</span>
+                  {inst1Paid ? (
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-green-100 text-green-700 text-[11px] font-semibold">
+                      <Check size={12} /> Paid
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-yellow-100 text-yellow-700 text-[11px] font-semibold">
+                      <Clock size={12} /> Pending
+                    </span>
+                  )}
+                </div>
+
+                <p className="text-xs text-green-700 font-medium">
+                  Trigger: Level 1 Income (₹200)
+                </p>
+                <p className="text-[11px] text-gray-500">
+                  Date: {currentUser.installments[1]?.paidAt ? new Date(currentUser.installments[1].paidAt!).toLocaleDateString("en-IN") : "—"}
+                </p>
+
+                {!inst1Paid && (
+                  <button
+                    disabled={processingId === `${currentUser.id}-1`}
+                    onClick={() => handleClearInstallment(currentUser, 1)}
+                    className="w-full mt-1 py-2 rounded-xl bg-gradient-to-r from-[#FFD21C] to-[#C99420] text-black font-bold text-xs shadow-sm"
+                  >
+                    {processingId === `${currentUser.id}-1` ? "Processing..." : "Mark 1st Paid"}
+                  </button>
+                )}
+              </div>
+
+              {/* Mobile Card - Installment 2 */}
+              <div className="bg-gray-50/70 p-3.5 rounded-xl border border-gray-100 space-y-2.5 pt-4">
+                <div className="flex justify-between items-center">
+                  <span className="font-bold text-gray-900 text-sm">2nd Installment</span>
+                  {inst2Paid ? (
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-green-100 text-green-700 text-[11px] font-semibold">
+                      <Check size={12} /> Paid
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-yellow-100 text-yellow-700 text-[11px] font-semibold">
+                      <Clock size={12} /> Pending
+                    </span>
+                  )}
+                </div>
+
+                <p className="text-xs text-blue-700 font-medium">
+                  Trigger: Level 2–6 Team Incomes
+                </p>
+                <p className="text-[11px] text-gray-500">
+                  Date: {currentUser.installments[2]?.paidAt ? new Date(currentUser.installments[2].paidAt!).toLocaleDateString("en-IN") : "—"}
+                </p>
+
+                {!inst2Paid && (
+                  <button
+                    disabled={!inst1Paid || processingId === `${currentUser.id}-2`}
+                    onClick={() => handleClearInstallment(currentUser, 2)}
+                    className="w-full mt-1 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold text-xs shadow-sm disabled:opacity-40"
+                  >
+                    {processingId === `${currentUser.id}-2` ? "Processing..." : "Mark 2nd Paid"}
+                  </button>
+                )}
+              </div>
+
             </div>
           </div>
         </>
@@ -355,9 +440,9 @@ function Payments() {
 
 function StatusSummary({ label, value }: { label: string; value: number }) {
   return (
-    <div className="border border-gray-200 rounded-xl px-5 py-3 text-center min-w-[100px]">
-      <p className="text-xs text-gray-500">{label}</p>
-      <p className="text-xl font-bold text-gray-900">{value}</p>
+    <div className="border border-gray-200 rounded-xl px-4 py-2.5 sm:px-5 sm:py-3 text-center flex-1 sm:min-w-[100px] bg-gray-50/50">
+      <p className="text-[11px] sm:text-xs text-gray-500">{label}</p>
+      <p className="text-lg sm:text-xl font-bold text-gray-900">{value}</p>
     </div>
   );
 }

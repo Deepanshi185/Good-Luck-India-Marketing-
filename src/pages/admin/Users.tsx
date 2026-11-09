@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Search, Eye, Edit, X, Check } from "lucide-react";
+import { Search, Eye, Edit, X, Check, Lock } from "lucide-react";
 import { db } from "../../firebaseConfig";
 import { collection, getDocs, doc, updateDoc } from "firebase/firestore";
 
@@ -12,6 +12,7 @@ type Member = {
   status: string;
   pan: string;
   referrerId?: string;
+  password?: string;
 };
 
 function Users() {
@@ -28,6 +29,7 @@ function Users() {
     mobile: "",
     pan: "",
     referrerId: "",
+    password: "",
   });
   const [saving, setSaving] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -57,6 +59,7 @@ function Users() {
           status: data.role === "admin" ? "Admin" : "Active",
           pan: data.pan || "N/A",
           referrerId: data.referrerId || "",
+          password: data.password || "",
         });
       });
 
@@ -76,6 +79,7 @@ function Users() {
       mobile: user.mobile,
       pan: user.pan === "N/A" ? "" : user.pan,
       referrerId: user.referrerId || "",
+      password: "", // Blank by default; set new password if updating
     });
   };
 
@@ -86,13 +90,20 @@ function Users() {
 
     try {
       const userRef = doc(db, "users", editingUser.id);
-      await updateDoc(userRef, {
+      const updatePayload: Record<string, any> = {
         fullName: editForm.name,
         email: editForm.email,
         mobile: editForm.mobile,
         pan: editForm.pan.trim() || "N/A",
         referrerId: editForm.referrerId.trim() || null,
-      });
+      };
+
+      // Only update password if admin typed a new one
+      if (editForm.password.trim() !== "") {
+        updatePayload.password = editForm.password.trim();
+      }
+
+      await updateDoc(userRef, updatePayload);
 
       // Update state locally
       setUsers((prev) =>
@@ -105,6 +116,10 @@ function Users() {
                 mobile: editForm.mobile,
                 pan: editForm.pan.trim() || "N/A",
                 referrerId: editForm.referrerId.trim(),
+                password:
+                  editForm.password.trim() !== ""
+                    ? editForm.password.trim()
+                    : u.password,
               }
             : u
         )
@@ -315,13 +330,13 @@ function Users() {
                 <div className="flex gap-2 pt-1">
                   <button
                     onClick={() => setViewingUser(user)}
-                    className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg border border-gray-200 text-xs font-semibold text-gray-700 hover:bg-gray-50"
+                    className="flex-1 flex items-center justify-center gap-1 py-2 rounded-lg border border-gray-200 text-xs font-semibold text-gray-700 hover:bg-gray-50"
                   >
                     <Eye size={14} /> View
                   </button>
                   <button
                     onClick={() => handleOpenEdit(user)}
-                    className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg bg-[#D4AF37] text-black text-xs font-semibold hover:bg-[#b8972e]"
+                    className="flex-1 flex items-center justify-center gap-1 py-2 rounded-lg bg-[#D4AF37] text-black text-xs font-semibold hover:bg-[#b8972e]"
                   >
                     <Edit size={14} /> Edit
                   </button>
@@ -339,7 +354,7 @@ function Users() {
       {/* VIEW USER MODAL */}
       {viewingUser && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-5 sm:p-6 shadow-2xl relative">
+          <div className="bg-white rounded-2xl max-w-md w-full p-5 sm:p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto">
             <button
               onClick={() => setViewingUser(null)}
               className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 p-1"
@@ -377,7 +392,7 @@ function Users() {
       {/* EDIT USER MODAL */}
       {editingUser && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-5 sm:p-6 shadow-2xl relative">
+          <div className="bg-white rounded-2xl max-w-md w-full p-5 sm:p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto">
             <button
               onClick={() => setEditingUser(null)}
               className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 p-1"
@@ -430,6 +445,23 @@ function Users() {
                   className="w-full p-2.5 border border-gray-300 rounded-xl outline-none focus:border-[#D4AF37]"
                   required
                 />
+              </div>
+
+              <div>
+                <label className="block font-semibold text-gray-700 mb-1 flex items-center justify-between">
+                  <span>New Password (Optional)</span>
+                  <Lock size={14} className="text-gray-400" />
+                </label>
+                <input
+                  type="text"
+                  value={editForm.password}
+                  onChange={(e) => setEditForm({ ...editForm, password: e.target.value })}
+                  placeholder="Enter new password to reset"
+                  className="w-full p-2.5 border border-gray-300 rounded-xl outline-none focus:border-[#D4AF37]"
+                />
+                <p className="text-[11px] text-gray-400 mt-0.5">
+                  Leave blank to keep the member's current password unchanged.
+                </p>
               </div>
 
               <div>

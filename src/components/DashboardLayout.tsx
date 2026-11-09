@@ -4,28 +4,21 @@ import Topbar from "./Topbar";
 
 function DashboardLayout() {
   return (
-    <div className="min-h-screen bg-[#120604]">
+    <div className="min-h-screen bg-[#120604] flex flex-col md:flex-row w-full max-w-full overflow-x-hidden">
 
-      <div className="flex">
+      {/* SIDEBAR & MOBILE HEADER */}
+      <Sidebar />
 
-        {/* SIDEBAR */}
+      {/* RIGHT SIDE MAIN CONTENT AREA */}
+      <div className="flex-1 min-h-screen min-w-0 flex flex-col">
 
-        <Sidebar />
+        {/* TOPBAR */}
+        <Topbar />
 
-
-        {/* RIGHT SIDE */}
-
-        <div className="flex-1 min-h-screen">
-
-          <Topbar />
-
-          <main className="p-6">
-
-            <Outlet />
-
-          </main>
-
-        </div>
+        {/* PAGE CONTENT */}
+        <main className="p-3 sm:p-6 flex-1 max-w-full overflow-x-hidden">
+          <Outlet />
+        </main>
 
       </div>
 

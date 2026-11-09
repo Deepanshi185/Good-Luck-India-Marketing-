@@ -22,6 +22,7 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 import Users from "./pages/admin/Users";
 import AddUser from "./pages/admin/AddUser";
 import Payments from "./pages/admin/Payments";
+import MonthlyPayments from "./pages/admin/MonthlyPayments"; // 👈 1. Import the new 21-Month tracker page
 import TeamManagement from "./pages/admin/TeamManagement";
 import Withdrawals from "./pages/admin/Withdrawals";
 
@@ -53,6 +54,7 @@ function App() {
           <Route path="/admin/users" element={<Users />} />
           <Route path="/admin/add-user" element={<AddUser />} />
           <Route path="/admin/payments" element={<Payments />} />
+          <Route path="/admin/monthly-payments" element={<MonthlyPayments />} /> {/* 👈 2. Add route here */}
           <Route path="/admin/team" element={<TeamManagement />} />
           <Route path="/admin/income" element={<div>Admin Income</div>} />
           <Route path="/admin/withdrawals" element={<Withdrawals />} />

@@ -6,12 +6,18 @@ import {
   UsersRound,
   Banknote,
   Wallet,
+  Calendar,
   LogOut,
 } from "lucide-react";
+import { NavLink, useNavigate } from "react-router-dom";
 
-import { NavLink } from "react-router-dom";
+type AdminSidebarProps = {
+  onNavItemClick?: () => void;
+};
 
-function AdminSidebar() {
+function AdminSidebar({ onNavItemClick }: AdminSidebarProps) {
+  const navigate = useNavigate();
+
   const menuItems = [
     {
       name: "Dashboard",
@@ -29,14 +35,19 @@ function AdminSidebar() {
       icon: UserPlus,
     },
     {
-      name: "Payments",
+      name: "Team Management",
+      path: "/admin/team",
+      icon: UsersRound,
+    },
+    {
+      name: "Level Commissions",
       path: "/admin/payments",
       icon: CreditCard,
     },
     {
-      name: "Team Management",
-      path: "/admin/team",
-      icon: UsersRound,
+      name: "21-Month Payments",
+      path: "/admin/monthly-payments",
+      icon: Calendar,
     },
     {
       name: "Payout / Income",
@@ -50,78 +61,61 @@ function AdminSidebar() {
     },
   ];
 
+  const handleLogout = () => {
+    if (onNavItemClick) onNavItemClick();
+    localStorage.clear();
+    navigate("/login");
+  };
+
   return (
-    <aside className="w-64 min-h-screen bg-white text-black border-r border-gray-200 flex flex-col">
+    <aside className="w-full md:w-64 bg-white text-black md:border-r border-gray-200 flex flex-col min-h-full">
 
-      {/* COMPANY LOGO */}
-
-      <div className="h-20 flex items-center justify-center border-b border-gray-200">
-
-        <h1 className="text-xl font-bold text-[#B8860B]">
+      {/* COMPANY LOGO (Hidden on mobile drawer since header shows brand) */}
+      <div className="hidden md:flex h-20 items-center justify-center border-b border-gray-200 px-4">
+        <h1 className="text-lg font-bold text-[#B8860B] tracking-wider text-center">
           COMPANY NAME
         </h1>
-
       </div>
 
-
       {/* ADMIN LABEL */}
-
       <div className="px-5 pt-5 pb-2">
-
         <p className="text-xs font-bold uppercase tracking-wider text-gray-400">
           Admin Panel
         </p>
-
       </div>
 
-
       {/* MENU */}
-
-      <nav className="p-4 space-y-2 flex-1">
-
+      <nav className="p-3 sm:p-4 space-y-1.5 flex-1 overflow-y-auto">
         {menuItems.map((item) => {
-
           const Icon = item.icon;
 
           return (
             <NavLink
               key={item.path}
               to={item.path}
+              onClick={onNavItemClick}
               className={({ isActive }) =>
-                `flex items-center gap-4 px-4 py-3 rounded-xl font-semibold transition-all duration-200 ${
+                `flex items-center gap-3.5 px-4 py-3 rounded-xl font-semibold text-sm transition-all duration-200 ${
                   isActive
-                    ? "bg-gray-200 text-black"
+                    ? "bg-gray-200 text-black font-bold"
                     : "text-gray-700 hover:bg-gray-100"
                 }`
               }
             >
-
-              <Icon size={21} />
-
-              <span>
-                {item.name}
-              </span>
-
+              <Icon size={20} className="text-[#B8860B]" />
+              <span>{item.name}</span>
             </NavLink>
           );
-
         })}
 
-
         {/* LOGOUT */}
-
         <button
-          className="w-full flex items-center gap-4 px-4 py-3 rounded-xl font-semibold text-gray-700 hover:bg-gray-100 transition-all duration-200 mt-6"
+          onClick={handleLogout}
+          className="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl font-semibold text-sm text-red-600 hover:bg-red-50 transition-all duration-200 mt-6 border-t border-gray-100"
         >
-
-          <LogOut size={21} />
-
-          <span>
-            Logout
-          </span>
-
+          <LogOut size={20} />
+          <span>Logout</span>
         </button>
-
       </nav>
 
     </aside>
