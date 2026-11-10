@@ -63,17 +63,23 @@ function AdminSidebar({ onNavItemClick }: AdminSidebarProps) {
 
   const handleLogout = () => {
     if (onNavItemClick) onNavItemClick();
+    
+    // 🔒 Clear session storage completely
+    localStorage.removeItem("activeUserId");
+    localStorage.removeItem("userRole");
     localStorage.clear();
-    navigate("/login");
+
+    // Redirect to login
+    navigate("/login", { replace: true });
   };
 
   return (
     <aside className="w-full md:w-64 bg-white text-black md:border-r border-gray-200 flex flex-col min-h-full">
 
-      {/* COMPANY LOGO (Hidden on mobile drawer since header shows brand) */}
+      {/* COMPANY LOGO */}
       <div className="hidden md:flex h-20 items-center justify-center border-b border-gray-200 px-4">
         <h1 className="text-lg font-bold text-[#B8860B] tracking-wider text-center">
-          COMPANY NAME
+          GOOD LUCK INDIA
         </h1>
       </div>
 
@@ -108,10 +114,10 @@ function AdminSidebar({ onNavItemClick }: AdminSidebarProps) {
           );
         })}
 
-        {/* LOGOUT */}
+        {/* LOGOUT BUTTON */}
         <button
           onClick={handleLogout}
-          className="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl font-semibold text-sm text-red-600 hover:bg-red-50 transition-all duration-200 mt-6 border-t border-gray-100"
+          className="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl font-semibold text-sm text-red-600 hover:bg-red-50 transition-all duration-200 mt-6 border-t border-gray-100 cursor-pointer"
         >
           <LogOut size={20} />
           <span>Logout</span>
