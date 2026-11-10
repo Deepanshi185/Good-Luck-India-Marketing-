@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Search, CheckCircle2, Clock3, Calendar, ShieldCheck } from "lucide-react";
+import { Search, CheckCircle2, Clock3, Calendar } from "lucide-react";
 import { db } from "../../firebaseConfig";
 import { collection, getDocs, doc, updateDoc } from "firebase/firestore";
 
@@ -8,7 +8,6 @@ type MemberMonthlyRecord = {
   name: string;
   mobile: string;
   email: string;
-  // Tracks monthly payments from month 1 to 21: { 1: { paid: true, date: "..." }, ... }
   monthlyPayments: Record<number, { paid: boolean; paidAt?: string }>;
 };
 
@@ -33,7 +32,6 @@ function MonthlyPayments() {
       querySnapshot.forEach((docSnap) => {
         const data = docSnap.data();
         if (data.role !== "admin") {
-          // Initialize default 21 months record if not present
           const defaultMonths: Record<number, { paid: boolean; paidAt?: string }> = {};
           for (let m = 1; m <= 21; m++) {
             defaultMonths[m] = data.monthlyPayments?.[m] || { paid: false, paidAt: undefined };
@@ -60,7 +58,6 @@ function MonthlyPayments() {
     }
   }
 
-  // Toggle specific month payment status (1 to 21)
   const handleToggleMonth = async (monthNum: number) => {
     if (!selectedMember) return;
     setUpdatingMonth(monthNum);
@@ -79,7 +76,6 @@ function MonthlyPayments() {
         },
       });
 
-      // Update local state
       const updatedMonthly = {
         ...selectedMember.monthlyPayments,
         [monthNum]: { paid: newStatus, paidAt: currentDate },
@@ -124,7 +120,6 @@ function MonthlyPayments() {
     );
   }
 
-  // Calculate total paid months for selected member
   const paidMonthsCount = selectedMember
     ? Object.values(selectedMember.monthlyPayments).filter((m) => m.paid).length
     : 0;
@@ -133,7 +128,6 @@ function MonthlyPayments() {
   return (
     <div className="w-full max-w-full overflow-x-hidden space-y-4 sm:space-y-6">
       
-      {/* Toast Alert */}
       {toast && (
         <div className="fixed top-5 right-5 z-50 bg-green-600 text-white px-4 py-3 rounded-xl shadow-2xl flex items-center gap-2 text-xs sm:text-sm font-semibold animate-bounce">
           <CheckCircle2 size={18} />
@@ -141,7 +135,6 @@ function MonthlyPayments() {
         </div>
       )}
 
-      {/* Header */}
       <div>
         <h1 className="text-2xl sm:text-3xl font-bold text-white">
           21-Month Installments Tracker (₹1,000/mo)
@@ -153,7 +146,6 @@ function MonthlyPayments() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
         
-        {/* Left Column: Member Search & Selector */}
         <div className="bg-white rounded-2xl shadow-xl p-4 sm:p-5 border border-gray-100 flex flex-col h-[600px]">
           <h2 className="text-base font-bold text-gray-900 mb-3">Select Member</h2>
           
@@ -200,12 +192,10 @@ function MonthlyPayments() {
           </div>
         </div>
 
-        {/* Right Column: 21-Month Grid for Selected Member */}
         <div className="lg:col-span-2 bg-white rounded-2xl shadow-xl p-4 sm:p-6 border border-gray-100 flex flex-col">
           {selectedMember ? (
             <div className="space-y-5">
               
-              {/* Member Summary Header */}
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-4 border-b border-gray-200 gap-3">
                 <div>
                   <h2 className="text-lg sm:text-xl font-bold text-gray-900">
@@ -228,13 +218,11 @@ function MonthlyPayments() {
                 </div>
               </div>
 
-              {/* 21-Month Grid Header */}
               <div>
                 <h3 className="text-xs sm:text-sm font-bold text-[#D4AF37] uppercase tracking-wide mb-3">
                   Click a month to toggle payment status (₹1,000 each)
                 </h3>
 
-                {/* Grid of 21 Months */}
                 <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-7 gap-2.5">
                   {Array.from({ length: 21 }, (_, i) => i + 1).map((monthNum) => {
                     const monthData = selectedMember.monthlyPayments[monthNum] || { paid: false };
