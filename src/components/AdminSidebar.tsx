@@ -19,67 +19,30 @@ function AdminSidebar({ onNavItemClick }: AdminSidebarProps) {
   const navigate = useNavigate();
 
   const menuItems = [
-    {
-      name: "Dashboard",
-      path: "/admin/dashboard",
-      icon: LayoutDashboard,
-    },
-    {
-      name: "Users",
-      path: "/admin/users",
-      icon: Users,
-    },
-    {
-      name: "Add User",
-      path: "/admin/add-user",
-      icon: UserPlus,
-    },
-    {
-      name: "Team Management",
-      path: "/admin/team",
-      icon: UsersRound,
-    },
-    {
-      name: "Level Commissions",
-      path: "/admin/payments",
-      icon: CreditCard,
-    },
-    {
-      name: "21-Month Payments",
-      path: "/admin/monthly-payments",
-      icon: Calendar,
-    },
-    {
-      name: "Payout / Income",
-      path: "/admin/income",
-      icon: Banknote,
-    },
-    {
-      name: "Withdrawal Requests",
-      path: "/admin/withdrawals",
-      icon: Wallet,
-    },
+    { name: "Dashboard", path: "/admin/dashboard", icon: LayoutDashboard },
+    { name: "Users", path: "/admin/users", icon: Users },
+    { name: "Add User", path: "/admin/add-user", icon: UserPlus },
+    { name: "Team Management", path: "/admin/team", icon: UsersRound },
+    { name: "Level Commissions", path: "/admin/payments", icon: CreditCard },
+    { name: "21-Month Payments", path: "/admin/monthly-payments", icon: Calendar },
+    { name: "Payout / Income", path: "/admin/income", icon: Banknote },
+    { name: "Withdrawal Requests", path: "/admin/withdrawals", icon: Wallet },
   ];
 
   const handleLogout = () => {
     if (onNavItemClick) onNavItemClick();
-    
-    // 🔒 Clear session storage completely
     localStorage.removeItem("activeUserId");
     localStorage.removeItem("userRole");
     localStorage.clear();
-
-    // Redirect to login
     navigate("/login", { replace: true });
   };
 
   return (
     <aside className="w-full md:w-64 bg-white text-black md:border-r border-gray-200 flex flex-col min-h-full">
-
       {/* COMPANY LOGO */}
       <div className="hidden md:flex h-20 items-center justify-center border-b border-gray-200 px-4">
-        <h1 className="text-lg font-bold text-[#B8860B] tracking-wider text-center">
-          GOOD LUCK INDIA
+        <h1 className="text-sm lg:text-base font-extrabold text-[#B8860B] tracking-wide text-center leading-tight">
+          GOOD LUCK INDIA MARKETING
         </h1>
       </div>
 
@@ -94,7 +57,6 @@ function AdminSidebar({ onNavItemClick }: AdminSidebarProps) {
       <nav className="p-3 sm:p-4 space-y-1.5 flex-1 overflow-y-auto">
         {menuItems.map((item) => {
           const Icon = item.icon;
-
           return (
             <NavLink
               key={item.path}
@@ -123,7 +85,6 @@ function AdminSidebar({ onNavItemClick }: AdminSidebarProps) {
           <span>Logout</span>
         </button>
       </nav>
-
     </aside>
   );
 }
