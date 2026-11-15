@@ -7,15 +7,15 @@ function DashboardLayout() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-[#120604] flex flex-col md:flex-row w-full max-w-full overflow-x-hidden">
+    <div className="min-h-screen bg-gray-50 flex flex-col md:flex-row w-full max-w-full overflow-x-hidden">
       
       {/* DESKTOP SIDEBAR */}
       <Sidebar />
 
       {/* RIGHT SIDE MAIN CONTENT AREA */}
-      <div className="flex-1 min-h-screen min-w-0 flex flex-col">
+      <div className="flex-1 min-h-screen min-w-0 flex flex-col bg-gray-50">
 
-        {/* TOPBAR (Passes mobile menu state so Topbar's hamburger button opens the Sidebar drawer) */}
+        {/* TOPBAR */}
         <Topbar 
           mobileMenuOpen={mobileMenuOpen} 
           setMobileMenuOpen={setMobileMenuOpen} 
@@ -29,8 +29,8 @@ function DashboardLayout() {
           />
         </div>
 
-        {/* PAGE CONTENT */}
-        <main className="p-3 sm:p-6 flex-1 max-w-full overflow-x-hidden">
+        {/* PAGE CONTENT CONTAINER */}
+        <main className="p-4 sm:p-6 lg:p-8 flex-1 max-w-full overflow-x-hidden bg-gray-50">
           <Outlet />
         </main>
 
